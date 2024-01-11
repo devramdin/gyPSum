@@ -11,7 +11,7 @@ task Clean {
     Remove-Item -Path ".\Bin" -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-task TestCode {
+task TestCode -if (Test-Path -Path "$PSScriptRoot\Test") {
     Write-Build Yellow "`n`n`nTesting dev code before build"
     $TestResult = Invoke-Pester -Script "$PSScriptRoot\Test\Unit" -Tag Unit -Show 'Header','Summary' -PassThru
     if($TestResult.FailedCount -gt 0) {throw 'Tests failed'}
@@ -40,7 +40,7 @@ task MakeHelp -if (Test-Path -Path "$PSScriptRoot\Docs") {
 
 }
 
-task TestBuild {
+task TestBuild -if (Test-Path -Path "$PSScriptRoot\Test") {
     Write-Build Yellow "`n`n`nTesting compiled module"
     $Script =  @{Path="$PSScriptRoot\test\Unit"; Parameters=@{ModulePath=$Script:CompileResult.ModuleBase}}
     $CodeCoverage = (Get-ChildItem -Path $Script:CompileResult.ModuleBase -Filter *.psm1).FullName
@@ -55,7 +55,7 @@ task TestBuild {
         throw 'Tests failed'
     }
 
-    $CodeCoverageResult = $TestResult | Convert-CodeCoverage -SourceRoot "$PSScriptRoot\Source" #-Relative
+    $CodeCoverageResult = $TestResult | Convert-CodeCoverage -SourceRoot "$PSScriptRoot\Source" -Relative
     $CodeCoveragePercent = $TestResult.CodeCoverage.NumberOfCommandsExecuted/$TestResult.CodeCoverage.NumberOfCommandsAnalyzed*100 -as [int]
     Write-Verbose -Message "CodeCoverage is $CodeCoveragePercent%" -Verbose
     $CodeCoverageResult | Group-Object -Property SourceFile | Sort-Object -Property Count | Select-Object -Property Count, Name -Last 10
